@@ -1,5 +1,11 @@
 # Spring事务管理
 
+吃水不忘挖井人 感谢[椰子Tyshawn](https://tyshawnlee.blog.csdn.net/)
+
+文章来源：https://blog.csdn.net/litianxiang_kaola/article/details/79121561
+
+（下面在原文基础上 进行了一些修改）
+
 
 
 # 1.事务的基础
