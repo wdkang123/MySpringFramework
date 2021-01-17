@@ -20,7 +20,7 @@ AOP翻译过来叫面向切面编程, 核心就是这个切面.
 
  也就是说, 通过AOP可以解决代码耦合问题, 让职责更加单一.
 
-
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/aop01.png?raw=true)
 
 ## 1.1转账业务
 

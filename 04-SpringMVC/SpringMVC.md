@@ -42,29 +42,25 @@ MVC设计模式的任务是将包含业务数据的模块与显示模块的视�
 
 此重定向层是控制器 控制器将请求接收 执行更新模型的操作 然后通知视图关于模型更改的消息
 
-
-
-（后续上传）
-
 ## 3.1 传统架构
 
-图1
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc1.png?raw=true)
 
 
 
 ## 3.2 传统MVC架构
 
-图2
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc2.png?raw=true)
 
 
 
 # 4.SpringMVC架构
 
-图3
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc3.png?raw=true)
 
 ## 4.1 SpringMVC核心架构
 
-图4
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc4.png?raw=true)
 
 
 
