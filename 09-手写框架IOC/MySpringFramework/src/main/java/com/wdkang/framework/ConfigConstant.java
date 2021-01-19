@@ -6,7 +6,7 @@ public interface ConfigConstant {
   
   // สýพÝิด
   String JDBC_DRIVER = "handwritten.framework.jdbc.driver";
-  String JDBC_URl = "handwritten.framework.jdbc.url";
+  String JDBC_URL = "handwritten.framework.jdbc.url";
   String JDBC_USERNAME = "handwritten.framework.jdbc.username";
   String JDBC_PASSWORD = "handwritten.framework.jdbc.password";
   
