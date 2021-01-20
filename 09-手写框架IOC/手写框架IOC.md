@@ -579,7 +579,7 @@ public final class ClassHelper {
 
 ### 2.4.1 ReflectUtil工具类
 
-我们需要一个反射工具类 进行各种反射操作
+我们需要一个反射工具类 进行各种反射操
 
 ```java
 public final class ReflectionUtil {
