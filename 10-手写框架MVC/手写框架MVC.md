@@ -10,9 +10,7 @@
 
 # 1.简介
 
-图片【】
-
-
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc01.png?raw=true)
 
 上篇博客实现了Bean容器和Ioc功能 本篇博客实现简化版的SpringMVC 在下面的内容前
 
@@ -71,7 +69,7 @@ public class ServletDemo implements Servlet{
 
 ## 2.5 执行流程
 
-图片【】
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/mvc02.jpg?raw=true)
 
 - 客户端发出请求 http://localhost:8080/Demo/ServletDemo
 - 根据 web.xml文件的配置，找到< url-pattern>的值为 /ServletDemo 的< servlet-mapping>元素
@@ -358,7 +356,7 @@ REQUEST_MAP就相当于SpringMVC的映射处理器 接收到请求后返回对�
 
 （1）首先通过ClassHelper工具类获取到应用下所有的Controller的Class对象
 
-（2）然后遍历Controller极其所有方法 将所有带@RequestMapping注解的方法封装为处理器
+（2）然后遍历Controller及其所有方法 将所有带@RequestMapping注解的方法封装为处理器
 
 （3）将@RequestMapping注解里的请求路径和请求方法封装成请求对象
 
@@ -393,7 +391,7 @@ public final class ControllerHelper {
                             //封装请求和处理器
                             Request request = new Request(requestMethod, requestPath);
                             Handler handler = new Handler(controllerClass, method);
-                            REQUEST_MAP.put(request, handler);
+                            REQUEST_MAP.put(request, handler);p
                         }
                     }
                 }
@@ -741,15 +739,13 @@ public class UserController {
 <h1>用户信息</h1>
 <table>
     <tr>
-        <th>用户id</th>
-        <th>名称</th>
-        <th>年龄</th>
+        <th>username</th>
+        <th>password</th>
     </tr>
     <c:forEach var="userinfo" items="${userList}">
         <tr>
-            <td>${userinfo.id}</td>
-            <td>${userinfo.name}</td>
-            <td>${userinfo.age}</td>
+            <td>${userinfo.username}</td>
+            <td>${userinfo.password}</td>
             <td>
                 <a href="#">详情</a>
                 <a href="#">编辑</a>
@@ -761,11 +757,9 @@ public class UserController {
 </html>
 ```
 
+## 4.4 启动后的效果
 
-
-
-
-
+图片[]
 
 
 
