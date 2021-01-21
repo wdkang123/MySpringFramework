@@ -263,23 +263,503 @@ private void test() throws IOException {
 
 
 
+# 3.MVC实现
+
+## 3.1 映射处理器
+
+### 3.1.1 Request类
+
+请求类中方法和路径对应`@RequestMapping`注解里的方法和路径
+
+```java
+public class Request {
+    /**
+     * 请求方法
+     */
+    private String requestMethod;
+
+    /**
+     * 请求路径
+     */
+    private String requestPath;
+
+    public Request(String requestMethod, String requestPath) {
+        this.requestMethod = requestMethod;
+        this.requestPath = requestPath;
+    }
+
+    public String getRequestMethod() {
+        return requestMethod;
+    }
+
+    public String getRequestPath() {
+        return requestPath;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + requestMethod.hashCode();
+        result = 31 * result + requestPath.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Request)) return false;
+        Request request = (Request) obj;
+        return request.getRequestPath().equals(this.requestPath) && request.getRequestMethod().equals(this.requestMethod);
+    }
+}
+```
+
+
+
+### 3.1.2 Handler类
+
+Handler类为一个处理器 封装了Controller的Class对象和Method方法
+
+```java
+public class Handler {
+
+    /**
+     * Controller 类
+     */
+    private Class<?> controllerClass;
+
+    /**
+     * Controller 方法
+     */
+    private Method controllerMethod;
+
+    public Handler(Class<?> controllerClass, Method controllerMethod) {
+        this.controllerClass = controllerClass;
+        this.controllerMethod = controllerMethod;
+    }
+
+    public Class<?> getControllerClass() {
+        return controllerClass;
+    }
+
+    public Method getControllerMethod() {
+        return controllerMethod;
+    }
+}
+```
+
+### 3.1.3 实现映射处理器
+
+ControllerHelper助手类 定义了一个“请求-处理器”的映射REQUEST_MAP
+
+REQUEST_MAP就相当于SpringMVC的映射处理器 接收到请求后返回对应的处理器
+
+**REQUEST_MAP映射处理器的实现逻辑如下**
+
+（1）首先通过ClassHelper工具类获取到应用下所有的Controller的Class对象
+
+（2）然后遍历Controller极其所有方法 将所有带@RequestMapping注解的方法封装为处理器
+
+（3）将@RequestMapping注解里的请求路径和请求方法封装成请求对象
+
+（4）最后存入到REQUEST_MAP中
+
+```java
+public final class ControllerHelper {
+
+    /**
+     * REQUEST_MAP为 "请求-处理器" 的映射
+     */
+    private static final Map<Request, Handler> REQUEST_MAP = new HashMap<Request, Handler>();
+
+    static {
+        //遍历所有Controller类
+        Set<Class<?>> controllerClassSet = ClassHelper.getControllerClassSet();
+        if (CollectionUtils.isNotEmpty(controllerClassSet)) {
+            for (Class<?> controllerClass : controllerClassSet) {
+                //暴力反射获取所有方法
+                Method[] methods = controllerClass.getDeclaredMethods();
+                //遍历方法
+                if (ArrayUtils.isNotEmpty(methods)) {
+                    for (Method method : methods) {
+                        //判断是否带RequestMapping注解
+                        if (method.isAnnotationPresent(RequestMapping.class)) {
+                            RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
+                            //请求路径
+                            String requestPath = requestMapping.value();
+                            //请求方法
+                            String requestMethod = requestMapping.method().name();
+
+                            //封装请求和处理器
+                            Request request = new Request(requestMethod, requestPath);
+                            Handler handler = new Handler(controllerClass, method);
+                            REQUEST_MAP.put(request, handler);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取 Handler
+     */
+    public static Handler getHandler(String requestMethod, String requestPath) {
+        Request request = new Request(requestMethod, requestPath);
+        return REQUEST_MAP.get(request);
+    }
+}
+```
+
+
+
+## 3.2 前端控制器
+
+### 3.2.1 Param类
+
+Param类用于封装Controller的参数
+
+```java
+public class Param {
+
+    private Map<String, Object> paramMap;
+
+    public Param() {
+    }
+
+    public Param(Map<String, Object> paramMap) {
+        this.paramMap = paramMap;
+    }
+
+    public Map<String, Object> getParamMap() {
+        return paramMap;
+    }
+
+    public boolean isEmpty(){
+        return MapUtils.isEmpty(paramMap);
+    }
+}
+```
+
+### 3.2.2 Data类
+
+Data类用于封装Controller方法返回的JSON结果
+
+```java
+public class Data {
+
+    /**
+     * 模型数据
+     */
+    private Object model;
+
+    public Data(Object model) {
+        this.model = model;
+    }
+
+    public Object getModel() {
+        return model;
+    }
+}
+```
+
+### 3.2.3 View类
+
+View类用于封装视图返回的结果
+
+```java
+public class View {
+
+    /**
+     * 视图路径
+     */
+    private String path;
+
+    /**
+     * 模型数据
+     */
+    private Map<String, Object> model;
+
+    public View(String path) {
+        this.path = path;
+        model = new HashMap<String, Object>();
+    }
+
+    public View addModel(String key, Object value) {
+        model.put(key, value);
+        return this;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public Map<String, Object> getModel() {
+        return model;
+    }
+}
+```
+
+### 3.2.4 RequestHelper 助手类
+
+前端控制器接收到HTTP请求后 从HTTP中获取请求参数 然后封装到Param对象中
+
+```java
+public final class RequestHelper {
+
+    /**
+     * 获取请求参数
+     */
+    public static Param createParam(HttpServletRequest request) throws IOException {
+        Map<String, Object> paramMap = new HashMap<>();
+        Enumeration<String> paramNames = request.getParameterNames();
+        //没有参数
+        if (!paramNames.hasMoreElements()) {
+            return null;
+        }
+
+        //get和post参数都能获取到
+        while (paramNames.hasMoreElements()) {
+            String fieldName = paramNames.nextElement();
+            String fieldValue = request.getParameter(fieldName);
+            paramMap.put(fieldName, fieldValue);
+        }
+
+        return new Param(paramMap);
+    }
+}
+```
+
+### 3.2.5 HelperLoader类
+
+到目前为止 我们创建了ClassHelper BeanHelper IocHelper ControllerHelper 这四个类
+
+我们需要一个入口程序来装载他们（实际上加载静态代码块）
+
+当然就算没有这个入口程序 这些类也会被加载 这里只是为了让加载更加的集中
+
+```java
+public final class HelperLoader {
+
+    public static void init() {
+        Class<?>[] classList = {
+            ClassHelper.class,
+            BeanHelper.class,
+            IocHelper.class,
+            ControllerHelper.class
+        };
+        for (Class<?> cls : classList) {
+            ClassUtil.loadClass(cls.getName());
+        }
+    }
+}
+```
+
+### 3.2.6 实现前端控制器
+
+前端控制器实际上是一个Servlet 这里配置的拦截是所有请求 在服务器启动时实例化
+
+**当DispatchServlet实例化时**
+
+首先执行init方法 这时会调用HelperLoader.init() 方法来加载相关的Helper类 并注册处理相应资源的Servlet
+
+对于每一次客户端请求会执行service方法 这时会首先将请求方法和请求路径封装为 Request 对象
+
+然后从映射处理器中（REQUEST_MAP）中获取处理器
+
+接着从客户端中获取到Param对象 执行处理器方法
+
+最后判断处理器方法的返回值 若为view类型 则跳转到JSP页面 若为data类型 则返回json数据
+
+```java
+@WebServlet(urlPatterns = "/*", loadOnStartup = 0)
+public class DispatcherServlet extends HttpServlet {
+
+    @Override
+    public void init(ServletConfig servletConfig) throws ServletException {
+        //初始化相关的helper类
+        HelperLoader.init();
+
+        //获取ServletContext对象, 用于注册Servlet
+        ServletContext servletContext = servletConfig.getServletContext();
+
+        //注册处理jsp和静态资源的servlet
+        registerServlet(servletContext);
+    }
+
+    /**
+     * DefaultServlet和JspServlet都是由Web容器创建
+     * org.apache.catalina.servlets.DefaultServlet
+     * org.apache.jasper.servlet.JspServlet
+     */
+    private void registerServlet(ServletContext servletContext) {
+        //动态注册处理JSP的Servlet
+        ServletRegistration jspServlet = servletContext.getServletRegistration("jsp");
+        jspServlet.addMapping(ConfigHelper.getAppJspPath() + "*");
+
+        //动态注册处理静态资源的默认Servlet
+        ServletRegistration defaultServlet = servletContext.getServletRegistration("default");
+        defaultServlet.addMapping("/favicon.ico"); //网站头像
+        defaultServlet.addMapping(ConfigHelper.getAppAssetPath() + "*");
+    }
+
+    @Override
+    public void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String requestMethod = request.getMethod().toUpperCase();
+        String requestPath = request.getPathInfo();
+
+        //这里根据Tomcat的配置路径有两种情况, 一种是 "/userList", 另一种是 "/context地址/userList".
+        String[] splits = requestPath.split("/");
+        if (splits.length > 2) {
+            requestPath = "/" + splits[2];
+        }
+
+        //根据请求获取处理器(这里类似于SpringMVC中的映射处理器)
+        Handler handler = ControllerHelper.getHandler(requestMethod, requestPath);
+        if (handler != null) {
+            Class<?> controllerClass = handler.getControllerClass();
+            Object controllerBean = BeanHelper.getBean(controllerClass);
+
+            //初始化参数
+            Param param = RequestHelper.createParam(request);
+
+            //调用与请求对应的方法(这里类似于SpringMVC中的处理器适配器)
+            Object result;
+            Method actionMethod = handler.getControllerMethod();
+            if (param == null || param.isEmpty()) {
+                result = ReflectionUtil.invokeMethod(controllerBean, actionMethod);
+            } else {
+                result = ReflectionUtil.invokeMethod(controllerBean, actionMethod, param);
+            }
+
+            //跳转页面或返回json数据(这里类似于SpringMVC中的视图解析器)
+            if (result instanceof View) {
+                handleViewResult((View) result, request, response);
+            } else if (result instanceof Data) {
+                handleDataResult((Data) result, response);
+            }
+        }
+    }
+
+    /**
+     * 跳转页面
+     */
+    private void handleViewResult(View view, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        String path = view.getPath();
+        if (StringUtils.isNotEmpty(path)) {
+            if (path.startsWith("/")) { //重定向
+                response.sendRedirect(request.getContextPath() + path);
+            } else { //请求转发
+                Map<String, Object> model = view.getModel();
+                for (Map.Entry<String, Object> entry : model.entrySet()) {
+                    request.setAttribute(entry.getKey(), entry.getValue());
+                }
+                request.getRequestDispatcher(ConfigHelper.getAppJspPath() + path).forward(request, response);
+            }
+        }
+    }
+
+    /**
+     * 返回JSON数据
+     */
+    private void handleDataResult(Data data, HttpServletResponse response) throws IOException {
+        Object model = data.getModel();
+        if (model != null) {
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            PrintWriter writer = response.getWriter();
+            String json = JSON.toJSON(model).toString();
+            writer.write(json);
+            writer.flush();
+            writer.close();
+        }
+    }
+}
+```
 
 
 
 
 
+# 4.手写框架的实例
 
+到这里为止 这个手写的框架已经实现了Bean容器 Ioc功能 MVC功能 所以现在我们完全可以用这个框架来写一个实例
 
+## 4.1 业务类
 
+```java
+public interface IUserService {
+    List<User> getAllUser();
+}
 
+@Service
+public class UserService implements IUserService {
+    /**
+     * 获取所有用户
+     */
+    public List<User> getAllUser() {
+        List<User> userList = new ArrayList<>();
+        userList.add(new User(1, "Tom", 22));
+        userList.add(new User(2, "Alic", 12));
+        userList.add(new User(3, "Bob", 32));
+        return userList;
+    }
+}
+```
 
+## 4.2 处理类
 
+```java
+@Controller
+public class UserController {
+    @Autowired
+    private IUserService userService;
 
+    /**
+     * 用户列表
+     * @return
+     */
+    @RequestMapping(value = "/userList", method = RequestMethod.GET)
+    public View getUserList() {
+        List<User> userList = userService.getAllUser();
+        return new View("index.jsp").addModel("userList", userList);
+    }
+}
+```
 
+## 4.3 JSP
 
-
-
-
+```java
+<%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="BASE" value="${pageContext.request.contextPath}"/>
+<html>
+<head>
+    <title>用户信息</title>
+</head>
+<body>
+<h1>用户信息</h1>
+<table>
+    <tr>
+        <th>用户id</th>
+        <th>名称</th>
+        <th>年龄</th>
+    </tr>
+    <c:forEach var="userinfo" items="${userList}">
+        <tr>
+            <td>${userinfo.id}</td>
+            <td>${userinfo.name}</td>
+            <td>${userinfo.age}</td>
+            <td>
+                <a href="#">详情</a>
+                <a href="#">编辑</a>
+            </td>
+        </tr>
+    </c:forEach>
+</table>
+</body>
+</html>
+```
 
 
 
