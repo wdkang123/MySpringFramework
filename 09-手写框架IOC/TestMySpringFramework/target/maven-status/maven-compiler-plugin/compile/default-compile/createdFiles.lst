@@ -1,0 +1,5 @@
+com\mytest\servlet\StartServlet.class
+com\mytest\service\impl\UserServiceImpl.class
+com\mytest\pojo\User.class
+com\mytest\servlet\MySpringServlet.class
+com\mytest\service\UserService.class

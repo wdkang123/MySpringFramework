@@ -1,13 +1,16 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.myspring</groupId>
-	<artifactId>com.myspring</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>MySpringFramework</name>
-	<description>MySpringFramework</description>
-	<dependencies>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>TestMySpringFramework</groupId>
+  <artifactId>TestMySpringFramework</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>war</packaging>
+  	<dependencies>
+  		<!-- MySpringFramework -->
+  		<dependency>
+			<groupId>com.myspring</groupId>
+			<artifactId>com.myspring</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 		<!-- Servlet -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -79,4 +82,17 @@
 			<version>1.2.49</version>
 		</dependency>
 	</dependencies>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<configuration>
+					<port>8085</port>
+					<path>/</path>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

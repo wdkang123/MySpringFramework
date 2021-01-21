@@ -705,7 +705,6 @@ public final class BeanHelper {
 
 ```java
 public final class IocHelper {
-
     /**
      * 遍历bean容器所有bean的属性, 为所有带@Autowired注解的属性注入实例
      */
