@@ -759,7 +759,7 @@ public class UserController {
 
 ## 4.4 启动后的效果
 
-图片[]
+![](https://github.com/wdkang123/MySpringFramework/blob/main/images/MVC03.png?raw=true)
 
 
 
