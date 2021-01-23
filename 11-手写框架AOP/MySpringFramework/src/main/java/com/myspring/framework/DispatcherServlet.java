@@ -1,0 +1,135 @@
+package com.myspring.framework;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.util.Map;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRegistration;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.alibaba.fastjson.JSON;
+import com.myspring.framework.bean.Data;
+import com.myspring.framework.bean.Handler;
+import com.myspring.framework.bean.Param;
+import com.myspring.framework.bean.View;
+import com.myspring.framework.helper.BeanHelper;
+import com.myspring.framework.helper.ConfigHelper;
+import com.myspring.framework.helper.ControllerHelper;
+import com.myspring.framework.helper.RequestHelper;
+import com.myspring.framework.util.ReflectionUtil;
+
+@WebServlet(urlPatterns = "/*", loadOnStartup = 0)
+public class DispatcherServlet extends HttpServlet {
+  private static final long serialVersionUID = 1L;
+  
+  @Override
+  public void init(ServletConfig servletConfig) throws ServletException {
+    // 初始化相关的Helper类
+    HelperLoader.init();
+    // 获取ServletContext对象 用于注册Servlet
+    ServletContext servletContext = servletConfig.getServletContext();
+    // 注册处理JSP和静态资源的servlet
+    registerServlet(servletContext);
+  }
+  
+  /**
+   * DefaultServlet 和 JspServlet 都是由Web容器创建
+   * org.apache.catalina.servlets.DefaultServlet
+   * org.apache.catalina.servlets.JspServlet
+   */
+  private void registerServlet(ServletContext servletContext) {
+    // 动态注册处理JSP的Servlet
+    ServletRegistration jspServlet = servletContext.getServletRegistration("jsp");
+    jspServlet.addMapping(ConfigHelper.getAppJspPath() + "*");
+    // 动态注册处理静态资源的默认Servlet
+    ServletRegistration defaultServlet = servletContext.getServletRegistration("default");
+    defaultServlet.addMapping("/favicon.ico");
+    defaultServlet.addMapping(ConfigHelper.getAppAssetPath() + "*");
+  }
+  
+  @Override
+  protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    String requestMethod = req.getMethod().toUpperCase();
+    String requestPath = req.getPathInfo();
+    
+    // 这里根据Tomcat配置路径的两种情况
+    // 一种是 /userList
+    // 另一种是 /context地址/userList
+    String[] splits = requestPath.split("/");
+    if (splits.length > 2) {
+      requestPath = "/" + splits[2];
+    }
+    
+    // 获取请求处理器（这里类似SpringMVC的映射处理器）
+    Handler handler = ControllerHelper.getHandler(requestMethod, requestPath);
+    if (handler != null) {
+      Class<?> controllerClass = handler.getControllerClass();
+      Object controllerBean = BeanHelper.getBean(controllerClass);
+      
+      // 初始化参数
+      Param param = RequestHelper.createParam(req);
+      
+      // 调用与请求对应的方法(这里类似于SpringMVC的处理器适配器)
+      Object result;
+      Method actionMethod  = handler.getControllerMethod();
+      if (param == null || param.isEmpty()) {
+        result  = ReflectionUtil.invokeMethod(controllerBean, actionMethod);
+      } else {
+        result = ReflectionUtil.invokeMethod(controllerBean, actionMethod, param);
+      }
+      
+      // 跳转页面或返回json数据 （这里类似于SpringMVC中的视图解析器）
+      if (result instanceof View) {
+        handleViewResult((View) result, req, resp);
+      } else {
+        handleDataResult((Data) result, resp);
+      }
+    }
+  }
+  
+  /**
+   * 跳转页面
+   */
+  private void handleViewResult(View view, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    String path = view.getPath();
+    if (StringUtils.isNotEmpty(path)) {
+      if (path.startsWith("/")) {
+        // 重定向
+        response.sendRedirect(request.getContextPath() + path);
+      } else {
+        // 请求转发
+        Map<String, Object> model = view.getModel();
+        for (Map.Entry<String, Object> entry : model.entrySet()) {
+          request.setAttribute(entry.getKey(), entry.getValue());
+        }
+        request.getRequestDispatcher(ConfigHelper.getAppJspPath() + path).forward(request, response);
+      }
+    }
+  }
+  
+  
+  /**
+   * 返回json数据
+   */
+  private void handleDataResult(Data data, HttpServletResponse response) throws IOException {
+    Object model = data.getModel();
+    if (model != null) {
+      response.setContentType("application/json");
+      response.setCharacterEncoding("UTF-8");
+      PrintWriter writer = response.getWriter();
+      String json = JSON.toJSON(model).toString();
+      writer.write(json);
+      writer.flush();
+      writer.close();
+    }
+  }
+}

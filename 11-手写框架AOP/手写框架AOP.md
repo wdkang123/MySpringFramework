@@ -127,7 +127,7 @@ public class ProxyChain {
         Object methodResult;
         if (proxyIndex < proxyList.size()) {
             //执行增强方法
-            methodResult = proxyList.get(proxyIndex++).doProxy(this);
+            methodResult = proxyList.get(proxyIndex++).deProxy(this);
         } else {
             //目标方法最后执行且只执行一次
             methodResult = methodProxy.invokeSuper(targetObject, methodParams);
@@ -237,7 +237,7 @@ public abstract class AspectProxy implements Proxy {
 
 ```java
 public class ProxyFactory {
-
+ 
     /**
      * 输入一个目标类和一组Proxy接口实现, 输出一个代理对象
      */
