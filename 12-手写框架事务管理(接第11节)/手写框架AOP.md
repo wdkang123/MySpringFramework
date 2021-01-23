@@ -506,13 +506,13 @@ time: 1022ms
 
 # 4.事务管理 (大片大片的代码 我看傻了)
 
-（但是其实一行一行抄完还好 值得一抄）
-
 我们要达到目的是 当我们在目标方法上加@Transactional注解后
 
 该方法就拥有了事务管理
 
-**用AOP实现的思路是** （1）前置增强为开启事务
+**用AOP实现的思路是** 
+
+（1）前置增强为开启事务
 
 （2）后置增强为提交事务
 
@@ -788,7 +788,7 @@ public class TransactionProxy implements Proxy {
 
 如上面的代码 `TransactionProxy.doProxy()`
 
-（哇·· 代码好长！不过这个在上一节已经写过不少了）
+（哇·· 代码好长！）
 
 ```java
 public final class AopHelper {
